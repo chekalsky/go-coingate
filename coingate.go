@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/parnurzeal/gorequest"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -40,6 +41,20 @@ func New(appID int, apiKey string, apiSecret string, isSandbox bool) *Coingate {
 	}
 
 	return c
+}
+
+// CreateOrder creates new order with specified params
+func (c *Coingate) CreateOrder(d CreateOrderRequest) (Order, error) {
+	res, err := c.request("POST", "/orders", d)
+
+	if err != nil {
+		return Order{}, err
+	}
+
+	var o Order
+	json.Unmarshal([]byte(res), &o)
+
+	return o, nil
 }
 
 // GetOrder gets information about order by it's id
@@ -82,20 +97,6 @@ func (c *Coingate) ListOrders(d ListOrdersRequest) (Orders, error) {
 	return o, nil
 }
 
-// CreateOrder creates new order with specified params
-func (c *Coingate) CreateOrder(d CreateOrderRequest) (Order, error) {
-	res, err := c.request("POST", "/orders", d)
-
-	if err != nil {
-		return Order{}, err
-	}
-
-	var o Order
-	json.Unmarshal([]byte(res), &o)
-
-	return o, nil
-}
-
 // Ping requests the ping endpoint
 func (c *Coingate) Ping() bool {
 	res, err := c.request("GET", "/ping", nil)
@@ -112,6 +113,28 @@ func (c *Coingate) Ping() bool {
 	}
 
 	return false
+}
+
+// ProcessCallback gets a http.Request and parses POST fields to struct CallbackData
+func (c *Coingate) ProcessCallback(r *http.Request) (CallbackData, error) {
+	err := r.ParseForm()
+
+	if err != nil {
+		return CallbackData{}, fmt.Errorf("Form process error: %s", err)
+	}
+
+	var cd CallbackData
+	cd.ID, _ = strconv.Atoi(r.Form.Get("id"))
+	cd.OrderID = r.Form.Get("order_id")
+	cd.Status = r.Form.Get("status")
+	cd.Price = r.Form.Get("price")
+	cd.Currency = r.Form.Get("currency")
+	cd.ReceiveCurrency = r.Form.Get("receive_currency")
+	cd.ReceiveAmount = r.Form.Get("receive_amount")
+	cd.BtcAmount = r.Form.Get("btc_amount")
+	cd.CreatedAt, _ = time.Parse("2006-01-02T15:04:05-07:00", r.Form.Get("created_at"))
+
+	return cd, nil
 }
 
 func (c *Coingate) request(method string, uri string, data interface{}) (string, error) {
@@ -205,6 +228,19 @@ type Orders struct {
 	TotalOrders int     `json:"total_orders"`
 	TotalPages  int     `json:"total_pages"`
 	Orders      []Order `json:"orders"`
+}
+
+// CallbackData is a struct of POST fields which we receive as a callback from Coingate
+type CallbackData struct {
+	ID              int       `json:"id"`
+	OrderID         string    `json:"order_id"`
+	Status          string    `json:"status"`
+	Price           string    `json:"price"`
+	Currency        string    `json:"currency"`
+	ReceiveCurrency string    `json:"receive_currency"`
+	ReceiveAmount   string    `json:"receive_amount"`
+	BtcAmount       string    `json:"btc_amount"`
+	CreatedAt       time.Time `json:"created_at"`
 }
 
 type pong struct {
