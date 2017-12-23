@@ -1,9 +1,14 @@
 package coingate_test
 
 import (
+	"fmt"
 	"github.com/chekalskiy/go-coingate"
+	"net/http"
+	"net/url"
 	"reflect"
+	"strings"
 	"testing"
+	"time"
 )
 
 const (
@@ -92,6 +97,67 @@ func TestCoingate_ListOrders(t *testing.T) {
 
 	if !reflect.DeepEqual(BetweenTests.Order, o.Orders[0]) {
 		t.Fatal("Order is not found in list")
+	}
+}
+
+func TestCoingate_ProcessCallback(t *testing.T) {
+	testTime := time.Now()
+	testParams := fmt.Sprintf(`id=12345&order_id=ORDER-1415020039&status=paid&price=1050.99&currency=USD&receive_currency=EUR&receive_amount=926.73&btc_amount=4.849315&created_at=%s`, url.QueryEscape(testTime.Format("2006-01-02T15:04:05-07:00")))
+
+	r, err := http.NewRequest("POST", "", strings.NewReader(testParams))
+
+	if err != nil {
+		t.Fatal("Request creating error", err)
+	}
+
+	r.Header = http.Header{
+		"Content-Type": {"application/x-www-form-urlencoded"},
+	}
+
+	cd, err := Coingate.ProcessCallback(r)
+
+	if err != nil {
+		t.Fatal("Error processing callback", err)
+	}
+
+	if cd.ID != 12345 {
+		t.Fatal("Wrong callback object ID")
+	}
+
+	if cd.CreatedAt.Format(time.RFC3339) != testTime.Format(time.RFC3339) {
+		t.Fatal("Wrong callback object time")
+	}
+
+	// ---------
+
+	r, err = http.NewRequest("POST", "", nil)
+
+	if err != nil {
+		t.Fatal("Request creating error", err)
+	}
+
+	cd, err = Coingate.ProcessCallback(r)
+
+	if err == nil {
+		t.Fatal("Should be an error")
+	}
+
+	// ---------
+
+	r, err = http.NewRequest("POST", "", strings.NewReader("bad=1"))
+
+	if err != nil {
+		t.Fatal("Request creating error", err)
+	}
+
+	r.Header = http.Header{
+		"Content-Type": {"application/x-www-form-urlencoded"},
+	}
+
+	cd, _ = Coingate.ProcessCallback(r)
+
+	if cd.ID > 0 {
+		t.Fatal("Request creating error", err)
 	}
 }
 

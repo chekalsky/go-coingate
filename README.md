@@ -32,4 +32,8 @@ func main() {
 }
 ```
 
-Callbacks are in progress...
+## Callbacks
+
+When order status is changing, Coingate sends you a callback on URL which you specified when created the order.
+
+You can see [here](examples/receive_callback_example/main.go) how to handle it. You can get `CallbackData` struct with callback data.
