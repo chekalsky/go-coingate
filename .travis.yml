@@ -2,15 +2,12 @@ language: go
 go:
  - 1.x
  - tip
- - master
 
 before_install:
  - go get github.com/kardianos/govendor
- - go get golang.org/x/tools/cmd/cover
  - go get github.com/mattn/goveralls
 
 script:
  - govendor sync
- - go test -v .
  - go test -v -covermode=count -coverprofile=coverage.out
- - goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $COVERALLS_TOKEN
+ - $GOPATH/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $COVERALLS_TOKEN
