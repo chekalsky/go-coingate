@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-// Main Coingate class
+// Coingate main class
 type Coingate struct {
 	appID     int
 	apiKey    string
@@ -163,7 +163,7 @@ func (c *Coingate) getHMACSignature(nonce int64) string {
 	return hex.EncodeToString(hash.Sum(nil))
 }
 
-// Fields for creating order request
+// CreateOrderRequest is a struct with fields for creating order request
 type CreateOrderRequest struct {
 	OrderID         string `json:"order_id"`
 	Price           string `json:"price"`
@@ -176,14 +176,14 @@ type CreateOrderRequest struct {
 	SuccessURL      string `json:"success_url"`
 }
 
-// GET parameters for ListOrders request
+// ListOrdersRequest is a struct with GET parameters for ListOrders request
 type ListOrdersRequest struct {
 	PerPage int    `json:"per_page"`
 	Page    int    `json:"page"`
 	Sort    string `json:"sort"`
 }
 
-// The order
+// Order
 type Order struct {
 	ID             int       `json:"id"`
 	Currency       string    `json:"currency"`
@@ -198,7 +198,7 @@ type Order struct {
 	PaymentURL     string    `json:"payment_url"`
 }
 
-// List of orders
+// Orders is a list of orders
 type Orders struct {
 	CurrentPage int     `json:"current_page"`
 	PerPage     int     `json:"per_page"`
