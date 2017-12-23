@@ -155,7 +155,8 @@ func (c *Coingate) request(method string, uri string, data interface{}) (string,
 	request.Set("Accept", "application/json").
 		Set("Access-Nonce", strconv.Itoa(int(nonce))).
 		Set("Access-Key", c.apiKey).
-		Set("Access-Signature", c.getHMACSignature(nonce))
+		Set("Access-Signature", c.getHMACSignature(nonce)).
+		Timeout(time.Second * 15)
 
 	resp, body, errs := request.End()
 
