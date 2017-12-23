@@ -1,0 +1,216 @@
+package coingate
+
+import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"github.com/parnurzeal/gorequest"
+	"strconv"
+	"strings"
+	"time"
+)
+
+type Coingate struct {
+	appId     int
+	apiKey    string
+	apiSecret string
+	baseUrl   string
+}
+
+var urlLive = "api.coingate.com/v1"
+var urlSandbox = "api-sandbox.coingate.com/v1"
+
+// New creates a new Coingate instance
+//
+// It requires app data which you can get on https://coingate.com
+func New(appId int, apiKey string, apiSecret string, isSandbox bool) *Coingate {
+	u := urlLive
+	if isSandbox {
+		u = urlSandbox
+	}
+
+	c := &Coingate{
+		appId:     appId,
+		apiKey:    apiKey,
+		apiSecret: apiSecret,
+		baseUrl:   u,
+	}
+
+	return c
+}
+
+// GetOrder gets information about order by it's id
+func (c *Coingate) GetOrder(id int) (Order, error) {
+	res, err := c.request("GET", fmt.Sprintf("/orders/%d", id), nil)
+
+	if err != nil {
+		return Order{}, err
+	}
+
+	var o Order
+	json.Unmarshal([]byte(res), &o)
+
+	return o, nil
+}
+
+// ListOrders gets list of orders
+func (c *Coingate) ListOrders(d ListOrdersRequest) (Orders, error) {
+	if d.PerPage <= 0 {
+		d.PerPage = 10
+	}
+
+	if d.Page < 1 {
+		d.Page = 1
+	}
+
+	if len(d.Sort) == 0 {
+		d.Sort = "created_at_desc"
+	}
+
+	res, err := c.request("GET", "/orders", d)
+
+	if err != nil {
+		return Orders{}, err
+	}
+
+	var o Orders
+	json.Unmarshal([]byte(res), &o)
+
+	return o, nil
+}
+
+// CreateOrder creates new order with specified params
+func (c *Coingate) CreateOrder(d OrderRequest) (Order, error) {
+	res, err := c.request("POST", "/orders", d)
+
+	if err != nil {
+		return Order{}, err
+	}
+
+	var o Order
+	json.Unmarshal([]byte(res), &o)
+
+	return o, nil
+}
+
+// Ping requests the ping endpoint
+func (c *Coingate) Ping() bool {
+	res, err := c.request("GET", "/ping", nil)
+
+	if err != nil {
+		return false
+	}
+
+	var p Pong
+	json.Unmarshal([]byte(res), &p)
+
+	if p.Ping == "pong" {
+		return true
+	}
+
+	return false
+}
+
+func (c *Coingate) request(method string, uri string, data interface{}) (string, error) {
+	nonce := time.Now().UnixNano()
+	request := gorequest.New()
+
+	url := fmt.Sprintf("https://%s/%s", c.baseUrl, strings.Trim(uri, "/"))
+
+	request.CustomMethod(method, url)
+
+	if method == gorequest.POST {
+		request.Type("multipart").
+			Send(data)
+	} else if method == gorequest.GET {
+		request.Query(data)
+	}
+
+	request.Set("Accept", "application/json").
+		Set("Access-Nonce", strconv.Itoa(int(nonce))).
+		Set("Access-Key", c.apiKey).
+		Set("Access-Signature", c.getHMACSignature(nonce))
+
+	resp, body, errs := request.End()
+
+	if len(errs) > 0 {
+		return "", errs[0]
+	}
+
+	if resp.StatusCode != 200 {
+		var m ErrorResponse
+		json.Unmarshal([]byte(body), &m)
+
+		// Because sometimes there is Reason + Message, sometimes only Error
+		return "", errors.New(fmt.Sprintf("Error %d: %s %s%s", resp.StatusCode, m.Reason, m.Message, m.Error))
+	}
+
+	return body, nil
+}
+
+func (c *Coingate) getHMACSignature(nonce int64) string {
+	m := fmt.Sprintf("%d%d%s", nonce, c.appId, c.apiKey)
+
+	secret := []byte(c.apiSecret)
+	message := []byte(m)
+
+	hash := hmac.New(sha256.New, secret)
+	hash.Write(message)
+
+	return hex.EncodeToString(hash.Sum(nil))
+}
+
+type ErrorResponse struct {
+	Status  int    `json:"status"`
+	Error   string `json:"error"`
+	Message string `json:"message"`
+	Reason  string `json:"reason"`
+}
+
+type OrderRequest struct {
+	OrderId         string `json:"order_id"`
+	Price           string `json:"price"`
+	Currency        string `json:"currency"`
+	ReceiveCurrency string `json:"receive_currency"`
+	Title           string `json:"title"`
+	Description     string `json:"description"`
+	CallbackUrl     string `json:"callback_url"`
+	CancelUrl       string `json:"cancel_url"`
+	SuccessUrl      string `json:"success_url"`
+}
+
+type ListOrdersRequest struct {
+	PerPage int    `json:"per_page"`
+	Page    int    `json:"page"`
+	Sort    string `json:"sort"`
+}
+
+type Order struct {
+	Id             int       `json:"id"`
+	Currency       string    `json:"currency"`
+	BitcoinUri     string    `json:"bitcoin_uri"`
+	Status         string    `json:"status"`
+	Price          string    `json:"price"`
+	BtcAmount      string    `json:"btc_amount"`
+	CreatedAt      time.Time `json:"created_at"`
+	ExpireAt       time.Time `json:"expire_at"`
+	BitcoinAddress string    `json:"bitcoin_address"`
+	OrderId        string    `json:"order_id"`
+	PaymentUrl     string    `json:"payment_url"`
+}
+
+type Orders struct {
+	CurrentPage int     `json:"current_page"`
+	PerPage     int     `json:"per_page"`
+	TotalOrders int     `json:"total_orders"`
+	TotalPages  int     `json:"total_pages"`
+	Orders      []Order `json:"orders"`
+}
+
+type Pong struct {
+	Ping string    `json:"ping"`
+	Time time.Time `json:"time"`
+}
