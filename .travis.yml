@@ -3,6 +3,11 @@ go:
  - 1.x
  - tip
 
+env:
+  global:
+    - secure: kz04ho4gtDpLOdg4icF7RKw5rfwkP2igatmnRnmfi0BZ2Jxv1V6G04UTuO5IjM0NbsQFlMTsDysHVCriNWRhv8neU5uwID7NN6BYKsnbQt6jC+62HHK4cEnwWorfpVhmml5sxEen7JhF8ZzAid9bUCg84g9fzzxGSBie8n69GHcJIpNFH29eiwGeHynd55fGilJ3K1Mbir3A9ZSgYkgnZOEibLdp+WnEP2grxvqzkvIdqOT+2cYvQGMDV1PrCTt4MjyWqoOZYVDVcLlTydrb7bsKA9C9tXbYi1mGJMfd0DSXtZW9P64MnJG7vQ16dtUCFriaL/wXeKrpGkYHtLsw+ep8ZYERzivpOKM9ftzPGj1X5Gi0gQTqWElgONtxMYqeJ5imC3YrwYq7fZfZmAMweHGZA1IJjIYQFcAZBkZVUh6jB4DV4yUNA4xfOIQCq9/gWwzr7Ksx6TmFDaB/X+gf2KAYyn63/tj2f/55Il+60t/Bykbw/KnkcWHqp2csENKpilpXrLg3F9TKehRoyHXbOM6EFNkrdQ3KwOXD3LOW7KKug76x2/TxtZ0f/j3n831OSJuhhLSxdmrxN0Df5iKUlOY8IAQs68kt87p9fmIBGNykzdr2OSFdPjdd8fEvlDqnOz64OfnLsq3gliT6FkgKmuZiysLcXp7vribXlUSI8uE=
+
+
 before_install:
  - go get github.com/kardianos/govendor
  - go get github.com/mattn/goveralls
