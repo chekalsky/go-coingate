@@ -183,7 +183,7 @@ type ListOrdersRequest struct {
 	Sort    string `json:"sort"`
 }
 
-// Order
+// Order is The Order
 type Order struct {
 	ID             int       `json:"id"`
 	Currency       string    `json:"currency"`
