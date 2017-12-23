@@ -7,9 +7,9 @@ import (
 )
 
 const (
-	AppId     = 1015
-	ApiKey    = "WV5FGZRuoCstBiHayYXbp3"
-	ApiSecret = "ni6FmIUTxBSR8PK2JeDA5NVjpzc4tqZO"
+	AppID     = 1015
+	APIKey    = "WV5FGZRuoCstBiHayYXbp3"
+	APISecret = "ni6FmIUTxBSR8PK2JeDA5NVjpzc4tqZO"
 )
 
 var Coingate *coingate.Coingate
@@ -18,7 +18,7 @@ var BetweenTests struct {
 }
 
 func init() {
-	Coingate = coingate.New(AppId, ApiKey, ApiSecret, true)
+	Coingate = coingate.New(AppID, APIKey, APISecret, true)
 }
 
 func TestCoingate_Ping(t *testing.T) {
@@ -32,7 +32,7 @@ func TestCoingate_Ping(t *testing.T) {
 func TestCoingate_CreateOrder(t *testing.T) {
 	price := "10.01"
 
-	o, err := Coingate.CreateOrder(coingate.OrderRequest{
+	o, err := Coingate.CreateOrder(coingate.CreateOrderRequest{
 		Price:           price,
 		Currency:        "USD",
 		ReceiveCurrency: "BTC",
@@ -42,7 +42,7 @@ func TestCoingate_CreateOrder(t *testing.T) {
 		t.Fatal("Error on create order")
 	}
 
-	if o.Id <= 0 {
+	if o.ID <= 0 {
 		t.Fatal("Wrong response from server")
 	}
 
@@ -50,7 +50,7 @@ func TestCoingate_CreateOrder(t *testing.T) {
 		t.Fatal("Wrong price in created order")
 	}
 
-	if len(o.PaymentUrl) == 0 {
+	if len(o.PaymentURL) == 0 {
 		t.Fatal("Empty payment URL")
 	}
 
@@ -58,7 +58,7 @@ func TestCoingate_CreateOrder(t *testing.T) {
 }
 
 func TestCoingate_GetOrder(t *testing.T) {
-	o, err := Coingate.GetOrder(BetweenTests.Order.Id)
+	o, err := Coingate.GetOrder(BetweenTests.Order.ID)
 
 	if err != nil {
 		t.Fatal("Error on getting order")
@@ -96,7 +96,7 @@ func TestCoingate_ListOrders(t *testing.T) {
 }
 
 func TestCoingate_WithErrors(t *testing.T) {
-	_, err := Coingate.CreateOrder(coingate.OrderRequest{})
+	_, err := Coingate.CreateOrder(coingate.CreateOrderRequest{})
 
 	if err == nil {
 		t.Fatal("Should be an error")

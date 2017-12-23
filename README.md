@@ -1,5 +1,7 @@
 # Coingate.com Go API client
 
+[![GoDoc](https://godoc.org/github.com/chekalskiy/go-coingate?status.svg)](https://godoc.org/github.com/chekalskiy/go-coingate)
+
 Usage is very simple:
 
 ```golang

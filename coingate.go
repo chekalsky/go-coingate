@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/parnurzeal/gorequest"
 	"strconv"
@@ -13,11 +12,12 @@ import (
 	"time"
 )
 
+// Main Coingate class
 type Coingate struct {
-	appId     int
+	appID     int
 	apiKey    string
 	apiSecret string
-	baseUrl   string
+	baseURL   string
 }
 
 var urlLive = "api.coingate.com/v1"
@@ -26,17 +26,17 @@ var urlSandbox = "api-sandbox.coingate.com/v1"
 // New creates a new Coingate instance
 //
 // It requires app data which you can get on https://coingate.com
-func New(appId int, apiKey string, apiSecret string, isSandbox bool) *Coingate {
+func New(appID int, apiKey string, apiSecret string, isSandbox bool) *Coingate {
 	u := urlLive
 	if isSandbox {
 		u = urlSandbox
 	}
 
 	c := &Coingate{
-		appId:     appId,
+		appID:     appID,
 		apiKey:    apiKey,
 		apiSecret: apiSecret,
-		baseUrl:   u,
+		baseURL:   u,
 	}
 
 	return c
@@ -83,7 +83,7 @@ func (c *Coingate) ListOrders(d ListOrdersRequest) (Orders, error) {
 }
 
 // CreateOrder creates new order with specified params
-func (c *Coingate) CreateOrder(d OrderRequest) (Order, error) {
+func (c *Coingate) CreateOrder(d CreateOrderRequest) (Order, error) {
 	res, err := c.request("POST", "/orders", d)
 
 	if err != nil {
@@ -104,7 +104,7 @@ func (c *Coingate) Ping() bool {
 		return false
 	}
 
-	var p Pong
+	var p pong
 	json.Unmarshal([]byte(res), &p)
 
 	if p.Ping == "pong" {
@@ -118,7 +118,7 @@ func (c *Coingate) request(method string, uri string, data interface{}) (string,
 	nonce := time.Now().UnixNano()
 	request := gorequest.New()
 
-	url := fmt.Sprintf("https://%s/%s", c.baseUrl, strings.Trim(uri, "/"))
+	url := fmt.Sprintf("https://%s/%s", c.baseURL, strings.Trim(uri, "/"))
 
 	request.CustomMethod(method, url)
 
@@ -141,18 +141,18 @@ func (c *Coingate) request(method string, uri string, data interface{}) (string,
 	}
 
 	if resp.StatusCode != 200 {
-		var m ErrorResponse
+		var m errorResponse
 		json.Unmarshal([]byte(body), &m)
 
 		// Because sometimes there is Reason + Message, sometimes only Error
-		return "", errors.New(fmt.Sprintf("Error %d: %s %s%s", resp.StatusCode, m.Reason, m.Message, m.Error))
+		return "", fmt.Errorf("Error %d: %s %s%s", resp.StatusCode, m.Reason, m.Message, m.Error)
 	}
 
 	return body, nil
 }
 
 func (c *Coingate) getHMACSignature(nonce int64) string {
-	m := fmt.Sprintf("%d%d%s", nonce, c.appId, c.apiKey)
+	m := fmt.Sprintf("%d%d%s", nonce, c.appID, c.apiKey)
 
 	secret := []byte(c.apiSecret)
 	message := []byte(m)
@@ -163,45 +163,42 @@ func (c *Coingate) getHMACSignature(nonce int64) string {
 	return hex.EncodeToString(hash.Sum(nil))
 }
 
-type ErrorResponse struct {
-	Status  int    `json:"status"`
-	Error   string `json:"error"`
-	Message string `json:"message"`
-	Reason  string `json:"reason"`
-}
-
-type OrderRequest struct {
-	OrderId         string `json:"order_id"`
+// Fields for creating order request
+type CreateOrderRequest struct {
+	OrderID         string `json:"order_id"`
 	Price           string `json:"price"`
 	Currency        string `json:"currency"`
 	ReceiveCurrency string `json:"receive_currency"`
 	Title           string `json:"title"`
 	Description     string `json:"description"`
-	CallbackUrl     string `json:"callback_url"`
-	CancelUrl       string `json:"cancel_url"`
-	SuccessUrl      string `json:"success_url"`
+	CallbackURL     string `json:"callback_url"`
+	CancelURL       string `json:"cancel_url"`
+	SuccessURL      string `json:"success_url"`
 }
 
+// GET parameters for ListOrders request
 type ListOrdersRequest struct {
 	PerPage int    `json:"per_page"`
 	Page    int    `json:"page"`
 	Sort    string `json:"sort"`
 }
 
+// The order
 type Order struct {
-	Id             int       `json:"id"`
+	ID             int       `json:"id"`
 	Currency       string    `json:"currency"`
-	BitcoinUri     string    `json:"bitcoin_uri"`
+	BitcoinURI     string    `json:"bitcoin_uri"`
 	Status         string    `json:"status"`
 	Price          string    `json:"price"`
 	BtcAmount      string    `json:"btc_amount"`
 	CreatedAt      time.Time `json:"created_at"`
 	ExpireAt       time.Time `json:"expire_at"`
 	BitcoinAddress string    `json:"bitcoin_address"`
-	OrderId        string    `json:"order_id"`
-	PaymentUrl     string    `json:"payment_url"`
+	OrderID        string    `json:"order_id"`
+	PaymentURL     string    `json:"payment_url"`
 }
 
+// List of orders
 type Orders struct {
 	CurrentPage int     `json:"current_page"`
 	PerPage     int     `json:"per_page"`
@@ -210,7 +207,14 @@ type Orders struct {
 	Orders      []Order `json:"orders"`
 }
 
-type Pong struct {
+type pong struct {
 	Ping string    `json:"ping"`
 	Time time.Time `json:"time"`
+}
+
+type errorResponse struct {
+	Status  int    `json:"status"`
+	Error   string `json:"error"`
+	Message string `json:"message"`
+	Reason  string `json:"reason"`
 }
