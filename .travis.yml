@@ -1,0 +1,12 @@
+language: go
+go:
+ - 1.x
+ - release
+ - master
+
+before_install:
+ - go get github.com/kardianos/govendor
+
+script:
+ - govendor sync
+ - go test -v ./...
